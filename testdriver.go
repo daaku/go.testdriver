@@ -44,7 +44,10 @@ var (
 var browsers []string
 
 func newRemote(browser string) (selenium.WebDriver, error) {
-	caps := selenium.Capabilities{"browserName": browser}
+	caps := selenium.Capabilities{
+		"browserName": browser,
+		"acceptSslCerts": true,
+	}
 	if *webdriverProxy != "" {
 		proxy := make(map[string]string)
 		proxy["proxyType"] = "MANUAL"
