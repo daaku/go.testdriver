@@ -15,28 +15,28 @@ import (
 
 var (
 	webdriverRemoteUrl = flag.String(
-		"webdriver.remote",
+		"testdriver.remote",
 		"http://localhost:8080/wd/hub",
 		"Remote webdriver URL.")
 	webdriverQuit = flag.Bool(
-		"webdriver.quit", true,
+		"testdriver.quit", true,
 		"Determines if the browser will be quit at the end of a test.")
 	webdriverProxy = flag.String(
-		"webdriver.proxy",
+		"testdriver.proxy",
 		"",
 		"Webdriver browser proxy.")
 	webdriverImplicitWaitTimeout = flag.Duration(
-		"webdriver.timeout.implicit-wait", 60*time.Second,
+		"testdriver.timeout.implicit-wait", 60*time.Second,
 		"Webdriver implicit wait timeout.")
 	webdriverAsyncScriptTimeout = flag.Duration(
-		"webdriver.timeout.async-script", 60*time.Second,
+		"testdriver.timeout.async-script", 60*time.Second,
 		"Webdriver async script timeout.")
 	browserSpec = flag.String(
-		"webdriver.browsers",
+		"testdriver.browsers",
 		"firefox,chrome,iexplorer",
 		"List of browser to run against.")
 	internalChromeMode = flag.Bool(
-		"webdriver.internal-chrome",
+		"testdriver.internal-chrome",
 		false,
 		"Enable the internal chromedriver providing a self contained environment.")
 )
