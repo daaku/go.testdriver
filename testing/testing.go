@@ -5,27 +5,16 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
 
 var (
-	// The short flag requests that tests run more quickly, but its functionality
-	// is provided by test writers themselves.  The testing package is just its
-	// home.  The all.bash installation script sets it to make installation more
-	// efficient, but by default the flag is off so a plain "go test" will do a
-	// full test of the package.
-	short = flag.Bool("testdriver.short", false, "run smaller test suite to save time")
-
 	// Report as tests are run; default is silent for success.
 	chatty         = flag.Bool("testdriver.v", false, "verbose: print additional output")
 	match          = flag.String("testdriver.run", "", "regular expression to select tests and examples to run")
 	timeout        = flag.Duration("testdriver.timeout", 0, "if positive, sets an aggregate time limit for all tests")
-	cpuListStr     = flag.String("testdriver.cpu", "", "comma-separated list of number of CPUs to use for each test")
 	parallel       = flag.Int("testdriver.parallel", runtime.GOMAXPROCS(0), "maximum test parallelism")
-
-	cpuList []int
 )
 
 // common holds the elements common between T and B and
@@ -37,11 +26,6 @@ type common struct {
 	duration time.Duration
 	self     interface{}      // To be sent on signal channel when done.
 	signal   chan interface{} // Output for serial tests.
-}
-
-// Short reports whether the -test.short flag is set.
-func Short() bool {
-	return *short
 }
 
 // decorate inserts the final newline if needed and indentation tabs for formatting.
@@ -193,8 +177,6 @@ func tRunner(t *T, test *InternalTest) {
 // of the "go test" command.
 func Main(matchString func(pat, str string) (bool, error), tests []InternalTest) bool {
 	flag.Parse()
-	parseCpuList()
-
 	startAlarm()
 	testOk := RunTests(matchString, tests)
 	if testOk {
@@ -222,8 +204,6 @@ func RunTests(matchString func(pat, str string) (bool, error), tests []InternalT
 		fmt.Fprintln(os.Stderr, "testing: warning: no tests to run")
 		return
 	}
-	for _, procs := range cpuList {
-		runtime.GOMAXPROCS(procs)
 		// We build a new channel tree for each run of the loop.
 		// collector merges in one channel all the upstream signals from parallel tests.
 		// If all tests pump to the same channel, a bug can occur where a test
@@ -244,9 +224,6 @@ func RunTests(matchString func(pat, str string) (bool, error), tests []InternalT
 				continue
 			}
 			testName := tests[i].Name
-			if procs != 1 {
-				testName = fmt.Sprintf("%s-%d", tests[i].Name, procs)
-			}
 			t := &T{
 				common: common{
 					signal: make(chan interface{}),
@@ -284,7 +261,6 @@ func RunTests(matchString func(pat, str string) (bool, error), tests []InternalT
 			ok = ok && !t.failed
 			running--
 		}
-	}
 	return
 }
 
@@ -307,19 +283,4 @@ func stopAlarm() {
 // alarm is called if the timeout expires.
 func alarm() {
 	panic("test timed out")
-}
-
-func parseCpuList() {
-	if len(*cpuListStr) == 0 {
-		cpuList = append(cpuList, runtime.GOMAXPROCS(-1))
-	} else {
-		for _, val := range strings.Split(*cpuListStr, ",") {
-			cpu, err := strconv.Atoi(val)
-			if err != nil || cpu <= 0 {
-				fmt.Fprintf(os.Stderr, "testing: invalid value %q for -test.cpu", val)
-				os.Exit(1)
-			}
-			cpuList = append(cpuList, cpu)
-		}
-	}
 }
