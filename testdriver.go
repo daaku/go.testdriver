@@ -4,10 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"github.com/nshah/selenium"
+	"github.com/nshah/go.chromedriver"
 	"regexp"
 	"strings"
-	"testing"
+	"github.com/nshah/go.testdriver/testing"
 	"time"
+	"log"
+	"os"
 )
 
 var (
@@ -32,6 +35,10 @@ var (
 		"webdriver.browsers",
 		"firefox,chrome,iexplorer",
 		"List of browser to run against.")
+	internalChromeMode = flag.Bool(
+		"webdriver.internal-chrome",
+		false,
+		"Enable the internal chromedriver providing a self contained environment.")
 )
 
 var browsers []string
@@ -94,6 +101,17 @@ func matchString(pat, str string) (result bool, err error) {
 func Main(tests map[string]func(*T)) {
 	flag.Parse()
 
+	var internalChromeServer *chromedriver.Server
+	var err error
+	if *internalChromeMode {
+		internalChromeServer, err = chromedriver.Start()
+		*browserSpec = "chrome"
+		if err != nil {
+			log.Fatalf("Error starting internal chrome driver: %s", err)
+		}
+		*webdriverRemoteUrl = internalChromeServer.URL()
+	}
+
 	browserList := strings.Split(*browserSpec, ",")
 	for _, browser := range browserList {
 		browsers = append(browsers, strings.TrimSpace(browser))
@@ -108,5 +126,16 @@ func Main(tests map[string]func(*T)) {
 			})
 		}
 	}
-	testing.Main(matchString, internalTests, nil, nil)
+	testOk := testing.Main(matchString, internalTests)
+	if internalChromeServer != nil && *webdriverQuit {
+		if testOk {
+			internalChromeServer.StopOrFatal()
+		} else {
+			log.Print(
+				"chromedriver was kept running to allow investigating failed tests.")
+		}
+	}
+	if !testOk {
+		os.Exit(1)
+	}
 }

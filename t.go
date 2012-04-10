@@ -2,7 +2,7 @@ package testdriver
 
 import (
 	"github.com/nshah/selenium"
-	"testing"
+	"github.com/nshah/go.testdriver/testing"
 )
 
 type T struct {
