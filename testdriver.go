@@ -82,9 +82,11 @@ func newRemote(browser string) (selenium.WebDriver, func(), error) {
 	}
 
 	quit := func() {
-		wd.Quit()
-		if internalChromeServer != nil && *webdriverQuit {
-			internalChromeServer.StopOrFatal()
+		if *webdriverQuit {
+			wd.Quit()
+			if internalChromeServer != nil {
+				internalChromeServer.StopOrFatal()
+			}
 		}
 	}
 
