@@ -3,6 +3,7 @@ package testdriver
 import (
 	"github.com/nshah/go.testdriver/testing"
 	"github.com/nshah/selenium"
+	"net/url"
 )
 
 type T struct {
@@ -100,10 +101,14 @@ func (t *T) PageSource() string {
 	return pageSource
 }
 
-func (t *T) CurrentURL() string {
-	currentURL, err := t.Driver.CurrentURL()
+func (t *T) CurrentURL() *url.URL {
+	urlString, err := t.Driver.CurrentURL()
 	if err != nil {
 		t.Fatalf("Failed to get current URL with error %s", err)
+	}
+	currentURL, err := url.Parse(urlString)
+	if err != nil {
+		t.Fatalf("Failed to parse current URL %s with error %s", urlString, err)
 	}
 	return currentURL
 }
