@@ -3,14 +3,13 @@ package testdriver
 import (
 	"flag"
 	"fmt"
-	"github.com/nshah/selenium"
 	"github.com/nshah/go.chromedriver"
+	"github.com/nshah/go.testdriver/testing"
+	"github.com/nshah/selenium"
+	"os"
 	"regexp"
 	"strings"
-	"github.com/nshah/go.testdriver/testing"
 	"time"
-	"log"
-	"os"
 )
 
 var (
@@ -43,9 +42,9 @@ var (
 
 var browsers []string
 
-func newRemote(browser string) (selenium.WebDriver, error) {
+func newRemote(browser string) (selenium.WebDriver, func(), error) {
 	caps := selenium.Capabilities{
-		"browserName": browser,
+		"browserName":    browser,
 		"acceptSslCerts": true,
 	}
 	if *webdriverProxy != "" {
@@ -55,31 +54,51 @@ func newRemote(browser string) (selenium.WebDriver, error) {
 		proxy["sslProxy"] = *webdriverProxy
 		caps["proxy"] = proxy
 	}
-	wd, err := selenium.NewRemote(caps, *webdriverRemoteUrl)
+
+	remoteUrl := *webdriverRemoteUrl
+	var internalChromeServer *chromedriver.Server
+	if *internalChromeMode {
+		var err error
+		internalChromeServer, err = chromedriver.Start()
+		if err != nil {
+			return nil, nil, fmt.Errorf(
+				"Error starting internal chrome driver: %s", err)
+		}
+		remoteUrl = internalChromeServer.URL()
+	}
+
+	wd, err := selenium.NewRemote(caps, remoteUrl)
 	if err != nil {
-		return nil, fmt.Errorf("Can't start session %s for browser %s", err, browser)
+		return nil, nil, fmt.Errorf(
+			"Can't start session %s for browser %s", err, browser)
 	}
 	err = wd.SetAsyncScriptTimeout(*webdriverAsyncScriptTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("Can't set async script timeout %s", err)
+		return nil, nil, fmt.Errorf("Can't set async script timeout %s", err)
 	}
 	err = wd.SetImplicitWaitTimeout(*webdriverImplicitWaitTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("Can't set implicit wait timeout %s", err)
+		return nil, nil, fmt.Errorf("Can't set implicit wait timeout %s", err)
 	}
-	return wd, nil
+
+	quit := func() {
+		wd.Quit()
+		if internalChromeServer != nil && *webdriverQuit {
+			internalChromeServer.StopOrFatal()
+		}
+	}
+
+	return wd, quit, nil
 }
 
 func makeTestFunc(browser string, test func(*T)) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
-		wd, err := newRemote(browser)
+		wd, quit, err := newRemote(browser)
 		if err != nil {
 			t.Fatalf("Failed to create remote: %s", err)
 		}
-		if *webdriverQuit {
-			defer wd.Quit()
-		}
+		defer quit()
 		test(&T{
 			Driver: wd,
 			T:      t,
@@ -104,20 +123,13 @@ func matchString(pat, str string) (result bool, err error) {
 func Main(tests map[string]func(*T)) {
 	flag.Parse()
 
-	var internalChromeServer *chromedriver.Server
-	var err error
 	if *internalChromeMode {
-		internalChromeServer, err = chromedriver.Start()
-		*browserSpec = "chrome"
-		if err != nil {
-			log.Fatalf("Error starting internal chrome driver: %s", err)
+		browsers = []string{"chrome"}
+	} else {
+		browserList := strings.Split(*browserSpec, ",")
+		for _, browser := range browserList {
+			browsers = append(browsers, strings.TrimSpace(browser))
 		}
-		*webdriverRemoteUrl = internalChromeServer.URL()
-	}
-
-	browserList := strings.Split(*browserSpec, ",")
-	for _, browser := range browserList {
-		browsers = append(browsers, strings.TrimSpace(browser))
 	}
 
 	internalTests := make([]testing.InternalTest, 0, len(browsers)*len(tests))
@@ -130,14 +142,6 @@ func Main(tests map[string]func(*T)) {
 		}
 	}
 	testOk := testing.Main(matchString, internalTests)
-	if internalChromeServer != nil && *webdriverQuit {
-		if testOk {
-			internalChromeServer.StopOrFatal()
-		} else {
-			log.Print(
-				"chromedriver was kept running to allow investigating failed tests.")
-		}
-	}
 	if !testOk {
 		os.Exit(1)
 	}
