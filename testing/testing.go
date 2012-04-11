@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -105,6 +106,7 @@ func (c *common) FailNow() {
 // log generates the output. It's always at the same stack depth.
 func (c *common) log(s string) {
 	c.output = append(c.output, decorate(s, true)...)
+	c.output = append(c.output, debug.Stack()...)
 }
 
 // Log formats its arguments using default formatting, analogous to Println(),
