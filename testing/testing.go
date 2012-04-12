@@ -103,10 +103,17 @@ func (c *common) FailNow() {
 	runtime.Goexit()
 }
 
+func cleanStack() string {
+	const eol = "\n"
+	stack := string(debug.Stack())
+	lines := strings.Split(stack, eol)
+	return strings.Join(lines[8:len(lines)-7], eol) + "\n"
+}
+
 // log generates the output. It's always at the same stack depth.
 func (c *common) log(s string) {
 	c.output = append(c.output, decorate(s, true)...)
-	c.output = append(c.output, debug.Stack()...)
+	c.output = append(c.output, cleanStack()...)
 }
 
 // Log formats its arguments using default formatting, analogous to Println(),
