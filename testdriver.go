@@ -25,10 +25,10 @@ var (
 		"",
 		"Webdriver browser proxy.")
 	webdriverImplicitWaitTimeout = flag.Duration(
-		"testdriver.timeout.implicit-wait", 60*time.Second,
+		"testdriver.timeout.implicit-wait", 120*time.Second,
 		"Webdriver implicit wait timeout.")
 	webdriverAsyncScriptTimeout = flag.Duration(
-		"testdriver.timeout.async-script", 60*time.Second,
+		"testdriver.timeout.async-script", 120*time.Second,
 		"Webdriver async script timeout.")
 	browserSpec = flag.String(
 		"testdriver.browsers",

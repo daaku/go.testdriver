@@ -12,10 +12,10 @@ import (
 
 var (
 	// Report as tests are run; default is silent for success.
-	chatty         = flag.Bool("testdriver.v", false, "verbose: print additional output")
-	match          = flag.String("testdriver.run", "", "regular expression to select tests and examples to run")
-	timeout        = flag.Duration("testdriver.timeout", 0, "if positive, sets an aggregate time limit for all tests")
-	parallel       = flag.Int("testdriver.parallel", runtime.GOMAXPROCS(0), "maximum test parallelism")
+	chatty   = flag.Bool("testdriver.v", false, "verbose: print additional output")
+	match    = flag.String("testdriver.run", "", "regular expression to select tests and examples to run")
+	timeout  = flag.Duration("testdriver.timeout", 0, "if positive, sets an aggregate time limit for all tests")
+	parallel = flag.Int("testdriver.parallel", runtime.GOMAXPROCS(0), "maximum test parallelism")
 )
 
 // common holds the elements common between T and B and
@@ -213,63 +213,63 @@ func RunTests(matchString func(pat, str string) (bool, error), tests []InternalT
 		fmt.Fprintln(os.Stderr, "testing: warning: no tests to run")
 		return
 	}
-		// We build a new channel tree for each run of the loop.
-		// collector merges in one channel all the upstream signals from parallel tests.
-		// If all tests pump to the same channel, a bug can occur where a test
-		// kicks off a goroutine that Fails, yet the test still delivers a completion signal,
-		// which skews the counting.
-		var collector = make(chan interface{})
+	// We build a new channel tree for each run of the loop.
+	// collector merges in one channel all the upstream signals from parallel tests.
+	// If all tests pump to the same channel, a bug can occur where a test
+	// kicks off a goroutine that Fails, yet the test still delivers a completion signal,
+	// which skews the counting.
+	var collector = make(chan interface{})
 
-		numParallel := 0
-		startParallel := make(chan bool)
+	numParallel := 0
+	startParallel := make(chan bool)
 
-		for i := 0; i < len(tests); i++ {
-			matched, err := matchString(*match, tests[i].Name)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "testing: invalid regexp for -test.run: %s\n", err)
-				os.Exit(1)
-			}
-			if !matched {
-				continue
-			}
-			testName := tests[i].Name
-			t := &T{
-				common: common{
-					signal: make(chan interface{}),
-				},
-				name:          testName,
-				startParallel: startParallel,
-			}
-			t.self = t
-			if *chatty {
-				fmt.Printf("=== RUN %s\n", t.name)
-			}
-			go tRunner(t, &tests[i])
-			out := (<-t.signal).(*T)
-			if out == nil { // Parallel run.
-				go func() {
-					collector <- <-t.signal
-				}()
-				numParallel++
-				continue
-			}
-			t.report()
-			ok = ok && !out.failed
+	for i := 0; i < len(tests); i++ {
+		matched, err := matchString(*match, tests[i].Name)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "testing: invalid regexp for -test.run: %s\n", err)
+			os.Exit(1)
 		}
-
-		running := 0
-		for numParallel+running > 0 {
-			if running < *parallel && numParallel > 0 {
-				startParallel <- true
-				running++
-				numParallel--
-				continue
-			}
-			t := (<-collector).(*T)
-			t.report()
-			ok = ok && !t.failed
-			running--
+		if !matched {
+			continue
 		}
+		testName := tests[i].Name
+		t := &T{
+			common: common{
+				signal: make(chan interface{}),
+			},
+			name:          testName,
+			startParallel: startParallel,
+		}
+		t.self = t
+		if *chatty {
+			fmt.Printf("=== RUN %s\n", t.name)
+		}
+		go tRunner(t, &tests[i])
+		out := (<-t.signal).(*T)
+		if out == nil { // Parallel run.
+			go func() {
+				collector <- <-t.signal
+			}()
+			numParallel++
+			continue
+		}
+		t.report()
+		ok = ok && !out.failed
+	}
+
+	running := 0
+	for numParallel+running > 0 {
+		if running < *parallel && numParallel > 0 {
+			startParallel <- true
+			running++
+			numParallel--
+			continue
+		}
+		t := (<-collector).(*T)
+		t.report()
+		ok = ok && !t.failed
+		running--
+	}
 	return
 }
 
