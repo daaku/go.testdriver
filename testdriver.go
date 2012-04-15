@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/nshah/go.chromedriver"
 	"github.com/nshah/go.testdriver/testing"
-	"github.com/nshah/selenium"
+	"github.com/tebeka/selenium"
 	"os"
 	"regexp"
 	"strings"
