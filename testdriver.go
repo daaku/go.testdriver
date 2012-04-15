@@ -19,7 +19,8 @@ var (
 		"Remote webdriver URL.")
 	webdriverQuit = flag.Bool(
 		"testdriver.quit", true,
-		"Determines if the browser will be quit at the end of a test.")
+		"Determines if the browser will be quit at the end of a test, "+
+		"even if successful.")
 	webdriverProxy = flag.String(
 		"testdriver.proxy",
 		"",
@@ -38,6 +39,10 @@ var (
 		"testdriver.internal-chrome",
 		false,
 		"Enable the internal chromedriver providing a self contained environment.")
+	quitOnFail = flag.Bool(
+		"testdriver.quit-on-fail",
+		false,
+		"Will kill the browser even if the test fails.")
 )
 
 var browsers []string
@@ -100,7 +105,11 @@ func makeTestFunc(browser string, test func(*T)) func(*testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create remote: %s", err)
 		}
-		defer quit()
+		defer func() {
+			if !t.Failed() || *quitOnFail {
+				quit()
+			}
+		}()
 		test(&T{
 			Driver: wd,
 			T:      t,
