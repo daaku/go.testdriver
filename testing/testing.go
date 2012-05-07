@@ -1,3 +1,5 @@
+// Package testing is a stripped down copy of the standard testing package for
+// use with go.testdriver.
 package testing
 
 import (

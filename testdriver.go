@@ -1,3 +1,6 @@
+// Package testdriver implements a library for writing WebDriver tests
+// and provides a familar API for those used to the standard go
+// "testing" package.
 package testdriver
 
 import (
