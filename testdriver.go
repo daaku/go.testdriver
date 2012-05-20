@@ -23,7 +23,7 @@ var (
 	webdriverQuit = flag.Bool(
 		"testdriver.quit", true,
 		"Determines if the browser will be quit at the end of a test, "+
-		"even if successful.")
+			"even if successful.")
 	webdriverProxy = flag.String(
 		"testdriver.proxy",
 		"",
