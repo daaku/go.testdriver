@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/nshah/go.chromedriver"
+	"github.com/nshah/go.flagconfig"
 	"github.com/nshah/go.testdriver/testing"
 	"github.com/tebeka/selenium"
 	"os"
@@ -136,6 +137,7 @@ func matchString(pat, str string) (result bool, err error) {
 
 func Main(tests map[string]func(*T)) {
 	flag.Parse()
+	flagconfig.Parse()
 
 	if *internalChromeMode {
 		browsers = []string{"chrome"}
