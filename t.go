@@ -1,7 +1,7 @@
 package testdriver
 
 import (
-	"github.com/nshah/go.testdriver/testing"
+	"github.com/daaku/go.testdriver/testing"
 	"github.com/tebeka/selenium"
 	"net/url"
 )

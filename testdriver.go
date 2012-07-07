@@ -6,9 +6,9 @@ package testdriver
 import (
 	"flag"
 	"fmt"
-	"github.com/nshah/go.chromedriver"
-	"github.com/nshah/go.flagconfig"
-	"github.com/nshah/go.testdriver/testing"
+	"github.com/daaku/go.chromedriver"
+	"github.com/daaku/go.flagconfig"
+	"github.com/daaku/go.testdriver/testing"
 	"github.com/tebeka/selenium"
 	"os"
 	"regexp"
